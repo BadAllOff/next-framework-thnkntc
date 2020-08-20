@@ -3,12 +3,69 @@ import Head from "next/head";
 import BookList from "../components/Book/List/BookList";
 import ScrollButton from "../components/helpers/ScrollButton";
 import Layout from "../components/Layout";
-import withBooks from "../HOC/withBooks";
+// import withBooks from "../HOC/withBooks";
 import withLoader from "../HOC/withLoader";
 import user from "../data/user.json";
 import AuthContext from "../components/meta/AuthContext";
+import axios from "axios";
+import { zip, zipObject } from "lodash";
 
-function Home(props) {
+
+const util = require("util");
+
+const API_TOKEN = "key9ncgesGi9whRNC";
+
+const httpClient = axios.create({
+  baseURL: "https://api.airtable.com/v0/applIXFkfNWeoU7uh",
+  timeout: 5000,
+  headers: {
+    Authorization: `Bearer ${API_TOKEN}`,
+  },
+});
+
+function _mapFromAirtable({ records }) {
+  return records.map((record) => ({
+    id: record.fields.id,
+    title: record.fields.title,
+    description: record.fields.description,
+    pageCount: record.fields.page_count,
+    language: record.fields.language,
+    progress: record.fields.progress,
+    coverImage: record.fields.cover_image[0].url,
+    authorList: _mapAuthorsForEachRecord(record),
+    minPrice: record.fields.min_price,
+    mainPrice: record.fields.main_price,
+    totalSum: record.fields.total_sum,
+    expectedSum: record.fields.expected_sum,
+    subscribersCount: record.fields.subscribers_count,
+  }));
+}
+
+function _mapAuthorsForEachRecord(record) {
+  return record.fields.authors
+    ? (() => {
+        let arr = [];
+
+        if (record.fields.authors.length > 0) {
+          for (let i = 0; i < record.fields.authors.length; i++) {
+            arr = zip(
+              record.fields["id (from authors)"],
+              record.fields["name (from authors)"],
+              record.fields["email (from authors)"],
+              record.fields["about (from authors)"],
+              record.fields["avatar (from authors)"].map((item) => item.url)
+            ).map((record) =>
+              zipObject(["id", "name", "email", "about", "avatar"], record)
+            );
+          }
+        }
+
+        return arr;
+      })()
+    : [];
+}
+
+function Home({books}) {
   return (
     <AuthContext.Provider value={user}>
       <Head>
@@ -16,8 +73,8 @@ function Home(props) {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       <Layout>
-        {props.books && (
-          <BookList books={props.books} isLoading={!props.books} />
+        {books && (
+          <BookList books={books} isLoading={!books} />
         )}
         <ScrollButton
           scrollStepInPx="50"
@@ -32,9 +89,23 @@ function Home(props) {
 }
 
 export async function getServerSideProps(context) {
-  return {
-    props: {}, // will be passed to the page component as props
-  };
+  return httpClient
+    .get("/books", {
+      maxRecords: 3,
+      view: "Grid view",
+    })
+    .then((result) => result.data)
+    .then((data) => {
+      return _mapFromAirtable(data);
+    })
+    .then((books) => {
+      console.log(util.inspect(books, false, null, true /* enable colors */));
+      console.log(process.env.NODE_ENV);
+      return {
+        props: { books }, // will be passed to the page component as props
+      };
+    });
 }
 
-export default withBooks(withLoader(Home));
+
+export default withLoader(Home);
