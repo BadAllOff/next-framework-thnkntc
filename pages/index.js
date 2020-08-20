@@ -3,15 +3,11 @@ import Head from "next/head";
 import BookList from "../components/Book/List/BookList";
 import ScrollButton from "../components/helpers/ScrollButton";
 import Layout from "../components/Layout";
-// import withBooks from "../HOC/withBooks";
 import withLoader from "../HOC/withLoader";
 import user from "../data/user.json";
 import AuthContext from "../components/meta/AuthContext";
 import axios from "axios";
 import { zip, zipObject } from "lodash";
-
-
-const util = require("util");
 
 const API_TOKEN = "key9ncgesGi9whRNC";
 
@@ -99,8 +95,6 @@ export async function getServerSideProps(context) {
       return _mapFromAirtable(data);
     })
     .then((books) => {
-      console.log(util.inspect(books, false, null, true /* enable colors */));
-      console.log(process.env.NODE_ENV);
       return {
         props: { books }, // will be passed to the page component as props
       };
