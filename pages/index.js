@@ -6,7 +6,7 @@ import Layout from "../components/Layout";
 import withLoader from "../HOC/withLoader";
 import user from "../data/user.json";
 import AuthContext from "../components/meta/AuthContext";
-import {fetchData} from "../utils/fetch-data"
+import {fetchData as fetchBooks} from "../utils/fetch-data"
 
 
 function Home({ books }) {
@@ -33,7 +33,7 @@ function Home({ books }) {
 export async function getServerSideProps(context) {
   return {
     props: {
-      books: await fetchData(),
+      books: await fetchBooks(),
     },
   };
 }
